@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "375206300432",
+    "project_id": "zoom-or-speech-a7d64",
+    "storage_bucket": "zoom-or-speech-a7d64.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:375206300432:android:862e06e63a516b26e33395",
+        "android_client_info": {
+          "package_name": "com.zoomorspeech.mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "375206300432-1suqafqjior47ismae27caak1klp7521.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYLrsKf9d6hZ4PsMmeeAZgGHCd44qSmP4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "375206300432-1suqafqjior47ismae27caak1klp7521.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
