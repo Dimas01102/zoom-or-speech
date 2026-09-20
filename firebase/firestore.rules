@@ -1,43 +1,44 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Riwayat scan milik user
-    match /history/{userId} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == userId;
+    // history: user hanya boleh baca/tulis miliknya sendiri.
+    // Dipisah create vs read/update/delete krn saat create, `resource` blm ada
+    // (dokumennya belum tercipta) — harus cek request.resource, bukan resource.
+    match /history/{historyId} {
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.id_user;
+      allow read, update, delete: if request.auth != null
+                    && request.auth.uid == resource.data.id_user;
     }
 
-    // Pengaturan milik user
+    // user_setting: id dokumen = id_user, jadi cukup cocokkan docId dgn uid.
     match /user_setting/{userId} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Konten tutorial hanya bisa dibaca user yang login
-    match /content/{document=**} {
+    // konten: semua user terautentikasi boleh baca, write cuma via Admin SDK.
+    match /konten/{kontenId} {
       allow read: if request.auth != null;
       allow write: if false;
     }
 
-    // Log penggunaan tidak boleh diakses dari client
-    match /usage_logs/{document=**} {
+    // usage_logs: client (mobile) HANYA boleh create log miliknya sendiri.
+    // Tidak boleh baca/ubah/hapus log siapa pun, termasuk log miliknya sendiri
+    // — pemantauan/purge cuma dari Panel Admin lewat Admin SDK.
+    match /usage_logs/{logId} {
+      allow create: if request.auth != null
+                    && request.resource.data.id_user == request.auth.uid
+                    && request.resource.data.keys().hasAll(['id_user', 'jenis_aktivitas', 'waktu']);
+      allow read, update, delete: if false;
+    }
+
+    // service_credentials & admin: ditolak total dari client, cuma via Admin SDK.
+    match /service_credentials/{docId} {
       allow read, write: if false;
     }
 
-    // Kredensial service tidak boleh diakses dari client
-    match /service_credentials/{document=**} {
-      allow read, write: if false;
-    }
-
-    // Data admin tidak boleh diakses dari client
-    match /admin/{document=**} {
-      allow read, write: if false;
-    }
-
-    // Semua collection lain ditolak secara default
-    match /{document=**} {
+    match /admin/{adminId} {
       allow read, write: if false;
     }
   }

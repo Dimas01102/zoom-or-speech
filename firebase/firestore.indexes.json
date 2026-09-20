@@ -1,4 +1,13 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "history",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "id_user", "order": "ASCENDING" },
+        { "fieldPath": "waktu_scan", "order": "DESCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }
