@@ -5,7 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../providers/tts_provider.dart';
 
-/// kontrol play/berhenti/ulangi via flutter_tts.
+/// mode suara. Kontrol play, berhenti, ulangi via flutter_tts.
 class TtsResultPage extends ConsumerStatefulWidget {
   const TtsResultPage({super.key, required this.recognizedText});
 
@@ -19,7 +19,6 @@ class _TtsResultPageState extends ConsumerState<TtsResultPage> {
   @override
   void initState() {
     super.initState();
-    // Terapkan bahasa & kecepatan_suara tersimpan (UC-005) sebelum mulai membaca.
     Future.microtask(() async {
       final setting = ref.read(settingsControllerProvider);
       final controller = ref.read(ttsControllerProvider.notifier);
@@ -112,10 +111,12 @@ class _TtsResultPageState extends ConsumerState<TtsResultPage> {
                   value: rate,
                   min: 0.25,
                   max: 1.0,
-                  divisions: 3,
                   label: rate.toStringAsFixed(2),
                   onChanged: (value) {
                     setSheetState(() => rate = value);
+                    controller.setSpeechRate(value);
+                  },
+                  onChangeEnd: (value) {
                     controller.setSpeechRateAndApply(value);
                   },
                 ),

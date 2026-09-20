@@ -6,13 +6,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/app_title_bar.dart';
 import '../../../shared/tutorial_keys.dart';
 import '../../scan/pages/camera_permission_page.dart';
-import '../../tutorial/pages/tutorial_list_page.dart';
 import '../providers/output_mode_provider.dart';
 
-/// Beranda — 2 tombol besar Zoom/Suara diposisikan di tengah halaman (bukan
-/// stretch penuh), DITAMBAH tombol scan besar di tengah bottom nav
-/// (main_shell.dart) sbg akses cepat alternatif — keduanya menuju alur yang
-/// sama (pilih mode -> izin kamera -> scan).
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
@@ -29,18 +24,7 @@ class HomePage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const AppTitleBar(),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.menu_book_outlined),
-            tooltip: t.tutorial,
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const TutorialListPage()),
-            ),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const AppTitleBar()),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),

@@ -13,7 +13,7 @@ import '../../output/pages/tts_result_page.dart';
 import '../../output/pages/zoom_result_page.dart';
 import '../../scan/providers/scan_provider.dart' show firestoreServiceProvider;
 
-/// UC-006 — daftar riwayat scan milik user. Bisa diputar ulang sesuai type,
+/// daftar riwayat scan milik user. Bisa diputar ulang sesuai type,
 /// swipe kiri utk hapus satu, atau masuk mode pilih-banyak via ikon di AppBar.
 class HistoryListPage extends ConsumerStatefulWidget {
   const HistoryListPage({super.key});
@@ -30,7 +30,7 @@ class _HistoryListPageState extends ConsumerState<HistoryListPage> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => entry.type == 'zoom'
-            ? ZoomResultPage(recognizedText: entry.teksHasil)
+            ? ZoomResultPage(recognizedText: entry.teksHasil, imageBase64: entry.gambar)
             : TtsResultPage(recognizedText: entry.teksHasil),
       ),
     );

@@ -18,12 +18,11 @@ class CameraService {
 
     _controller = CameraController(
       backCamera,
-      ResolutionPreset.veryHigh,
+      ResolutionPreset.max,
       enableAudio: false,
     );
 
     await _controller!.initialize();
-    // Fokus & exposure kontinu-otomatis 
     try {
       await _controller!.setFocusMode(FocusMode.auto);
       await _controller!.setExposureMode(ExposureMode.auto);

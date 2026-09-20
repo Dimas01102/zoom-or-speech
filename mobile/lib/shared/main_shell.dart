@@ -8,6 +8,7 @@ import '../features/output/pages/home_page.dart';
 import '../features/output/providers/output_mode_provider.dart';
 import '../features/scan/pages/camera_permission_page.dart';
 import '../features/settings/pages/settings_page.dart';
+import '../features/tutorial/pages/tutorial_list_page.dart';
 import 'feature_tour.dart';
 import 'tutorial_keys.dart';
 
@@ -24,14 +25,13 @@ class _MainShellState extends ConsumerState<MainShell> {
   static const _pages = [
     HomePage(),
     HistoryListPage(),
+    TutorialListPage(),
     SettingsPage(),
   ];
 
   @override
   void initState() {
     super.initState();
-    // Tur fitur (coach mark) utk user baru sekali aja, setelah frame
-    // pertama selesai render supaya key target widget-nya udah ada ukurannya.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) FeatureTour.maybeShow(context);
     });
@@ -86,7 +86,7 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   void _startScan(BuildContext sheetContext, OutputMode mode) {
     ref.read(selectedOutputModeProvider.notifier).state = mode;
-    Navigator.of(sheetContext).pop(); // tutup bottom sheet dulu
+    Navigator.of(sheetContext).pop();
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const CameraPermissionPage()),
     );
@@ -118,7 +118,7 @@ class _MainShellState extends ConsumerState<MainShell> {
         height: 64,
         padding: EdgeInsets.zero,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _NavItem(
               icon: Icons.home_outlined,
@@ -133,13 +133,19 @@ class _MainShellState extends ConsumerState<MainShell> {
               selected: _index == 1,
               onTap: () => setState(() => _index = 1),
             ),
-            const SizedBox(width: 48), // ruang kosong utk notch tombol scan
+            const SizedBox(width: 40),
+            _NavItem(
+              icon: Icons.menu_book_outlined,
+              label: t.tutorial,
+              selected: _index == 2,
+              onTap: () => setState(() => _index = 2),
+            ),
             _NavItem(
               key: TutorialKeys.navSettings,
               icon: Icons.settings_outlined,
               label: t.navSettings,
-              selected: _index == 2,
-              onTap: () => setState(() => _index = 2),
+              selected: _index == 3,
+              onTap: () => setState(() => _index = 3),
             ),
           ],
         ),

@@ -4,7 +4,7 @@ service cloud.firestore {
 
     // history: user hanya boleh baca/tulis miliknya sendiri.
     // Dipisah create vs read/update/delete krn saat create, `resource` blm ada
-    // (dokumennya belum tercipta) — harus cek request.resource, bukan resource.
+    // (dokumennya belum tercipta) harus cek request.resource, bukan resource.
     match /history/{historyId} {
       allow create: if request.auth != null
                     && request.auth.uid == request.resource.data.id_user;
@@ -25,7 +25,7 @@ service cloud.firestore {
 
     // usage_logs: client (mobile) HANYA boleh create log miliknya sendiri.
     // Tidak boleh baca/ubah/hapus log siapa pun, termasuk log miliknya sendiri
-    // — pemantauan/purge cuma dari Panel Admin lewat Admin SDK.
+    // pemantauan/purge cuma dari Panel Admin lewat Admin SDK.
     match /usage_logs/{logId} {
       allow create: if request.auth != null
                     && request.resource.data.id_user == request.auth.uid
