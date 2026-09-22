@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "375206300432-r4silnih27bilor18ssfcgtci2ddfiir.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.zoomorspeech.mobile",
+            "certificate_hash": "515e8577bf345676ca3331b632a792343c853864"
+          }
+        },
+        {
           "client_id": "375206300432-1suqafqjior47ismae27caak1klp7521.apps.googleusercontent.com",
           "client_type": 3
         }

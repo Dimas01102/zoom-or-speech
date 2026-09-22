@@ -2,9 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // user: user hanya boleh baca/tulis dokumen miliknya sendiri.
+    // Ditulis mobile app sendiri sesaat setelah login (Google/Guest).
+    match /user/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // history: user hanya boleh baca/tulis miliknya sendiri.
-    // Dipisah create vs read/update/delete krn saat create, `resource` blm ada
-    // (dokumennya belum tercipta) harus cek request.resource, bukan resource.
     match /history/{historyId} {
       allow create: if request.auth != null
                     && request.auth.uid == request.resource.data.id_user;

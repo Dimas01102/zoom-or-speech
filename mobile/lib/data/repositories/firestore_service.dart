@@ -16,12 +16,13 @@ class FirestoreService {
   CollectionReference<Map<String, dynamic>> get _usageLogs => _db.collection('usage_logs');
   CollectionReference<Map<String, dynamic>> get _konten => _db.collection('konten');
   CollectionReference<Map<String, dynamic>> get _userSetting => _db.collection('user_setting');
+  CollectionReference<Map<String, dynamic>> get _user => _db.collection('user');
 
   Future<void> addHistory(HistoryEntry entry) {
     return _history.add(entry.toMap());
   }
 
-  /// Bikin reference dgn ID
+  /// Bikin reference dgn ID baru dulu, dipakai sebelum simpan dokumen.
   DocumentReference<Map<String, dynamic>> newHistoryRef() => _history.doc();
 
   Future<void> saveHistory(
@@ -39,12 +40,12 @@ class FirestoreService {
         .map((snap) => snap.docs.map(HistoryEntry.fromDoc).toList());
   }
 
-  /// hapus satu entri riwayat.
+  /// Hapus satu entri riwayat.
   Future<void> deleteHistory(String id) {
     return _history.doc(id).delete();
   }
 
-  /// hapus banyak entri sekaligus (mode pilih banyak), 
+  /// Hapus banyak entri sekaligus, mode pilih banyak.
   Future<void> deleteHistoryMany(List<String> ids) async {
     if (ids.isEmpty) return;
     final batch = _db.batch();
@@ -54,7 +55,7 @@ class FirestoreService {
     await batch.commit();
   }
 
-  /// Dipanggil di setiap aktivitas (login, scan, ganti mode) DAN saat error,
+  /// Dipanggil di setiap aktivitas (login, scan, ganti mode) dan saat error.
   Future<void> logActivity({
     required String? userId,
     required String jenisAktivitas,
@@ -71,20 +72,39 @@ class FirestoreService {
     return logActivity(userId: userId, jenisAktivitas: 'error');
   }
 
-  /// UC-004 — daftar konten tutorial. Isi manual dulu via Firebase Console
-  /// sebelum Panel Admin (UC-008) ada.
+  /// Daftar konten tutorial.
   Stream<List<Konten>> watchKontenList() {
     return _konten.snapshots().map(
           (snap) => snap.docs.map(Konten.fromDoc).toList(),
         );
   }
 
-  /// id dokumen = id_user (1-1). set(...) tanpa merge:true krn cuma
+  /// ID dokumen = id_user (1-1).
   Stream<UserSetting> watchUserSetting(String userId) {
     return _userSetting.doc(userId).snapshots().map(UserSetting.fromDoc);
   }
 
   Future<void> saveUserSetting(String userId, UserSetting setting) {
     return _userSetting.doc(userId).set(setting.toMap());
+  }
+
+  /// Dokumen koleksi user, ID dokumen = uid. Dipanggil sekali abis
+  /// login (Google atau Guest) supaya data user beneran masuk Firestore.
+  Future<void> upsertUser(String userId, {required String username, String? email}) async {
+    final doc = _user.doc(userId);
+    final snapshot = await doc.get();
+
+    if (!snapshot.exists) {
+      await doc.set({
+        'username': username,
+        'email': email ?? '',
+        'tanggal_dibuat': DateTime.now().toIso8601String(),
+      });
+    } else {
+      await doc.set({
+        'username': username,
+        'email': email ?? '',
+      }, SetOptions(merge: true));
+    }
   }
 }
