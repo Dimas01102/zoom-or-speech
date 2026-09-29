@@ -4,10 +4,15 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
-/// Kompres & encode foto hasil scan jadi base64, disimpan langsung di field
-/// `gambar` pada dokumen Firestore `history`
+/// Kompres & encode foto hasil scan jadi base64, disimpan LANGSUNG di field
+/// `gambar` pada tabel history di server, tanpa upload storage
+/// (yang mewajibkan upgrade ke plan Blaze / kartu kredit).
+///
+/// Foto WAJIB dikompres supaya payload API kecil.
+/// Tambahkan dependency: flutter pub add image
 class ImageCodecService {
-  /// [maxWidth] & [quality] base64
+  /// [maxWidth] & [quality] dipilih supaya hasil base64 biasanya di bawah
+  /// ~150 KB, masih cukup jelas utk thumbnail
   /// riwayat (bukan utk ditampilkan full-screen resolusi tinggi).
   Future<String> compressToBase64(
     String filePath, {

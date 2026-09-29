@@ -1,14 +1,13 @@
 import 'package:camera/camera.dart' show XFile;
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
-import '../../../data/models/history_entry.dart';
-import '../../../data/repositories/firestore_service.dart';
+import '../../../data/repositories/api_repository.dart';
 import '../../../data/services/camera_service.dart';
 import '../../../data/services/image_codec_service.dart';
 import '../../../data/services/ocr_service.dart';
+import '../../history/providers/history_provider.dart';
 import '../../output/providers/output_mode_provider.dart';
 
 final cameraServiceProvider = Provider<CameraService>((ref) {
@@ -21,10 +20,6 @@ final ocrServiceProvider = Provider<OcrService>((ref) {
   final service = OcrService();
   ref.onDispose(service.dispose);
   return service;
-});
-
-final firestoreServiceProvider = Provider<FirestoreService>((ref) {
-  return FirestoreService();
 });
 
 final imageCodecServiceProvider = Provider<ImageCodecService>((ref) {
@@ -72,21 +67,21 @@ final scanControllerProvider =
   return ScanController(
     ref.watch(cameraServiceProvider),
     ref.watch(ocrServiceProvider),
-    ref.watch(firestoreServiceProvider),
+    ref.watch(apiRepositoryProvider),
     ref.watch(imageCodecServiceProvider),
+    () => ref.invalidate(historyListProvider),
   );
 });
 
 class ScanController extends StateNotifier<ScanState> {
-  ScanController(this._camera, this._ocr, this._firestore, this._imageCodec)
+  ScanController(this._camera, this._ocr, this._api, this._imageCodec, this._onHistorySaved)
       : super(const ScanState());
 
   final CameraService _camera;
   final OcrService _ocr;
-  final FirestoreService _firestore;
+  final ApiRepository _api;
   final ImageCodecService _imageCodec;
-
-  String? get _userId => FirebaseAuth.instance.currentUser?.uid;
+  final void Function() _onHistorySaved;
 
   Future<void> initCamera() async {
     try {
@@ -97,17 +92,16 @@ class ScanController extends StateNotifier<ScanState> {
       state = state.copyWith(
         errorMessage: 'Gagal mengakses kamera. Cek izin kamera di pengaturan.',
       );
-      await _firestore.logError(_userId, 'camera_init');
     }
   }
 
-  /// Flashlight manual hanya berubah saat tombol ini ditekan pengguna.
+  /// Flashlight manual, hanya berubah saat tombol ini ditekan pengguna.
   Future<void> toggleTorch() async {
     await _camera.toggleTorch();
     state = state.copyWith(isTorchOn: _camera.isTorchOn);
   }
 
-  /// [mode] menentukan field `type` di history: 'zoom' atau 'tts'.
+  /// [mode] menentukan field type di history, zoom atau tts.
   Future<void> captureAndRecognize(OutputMode mode) async {
     if (!state.isCameraReady || state.isProcessing) return;
     state = state.copyWith(isProcessing: true, errorMessage: null);
@@ -123,13 +117,11 @@ class ScanController extends StateNotifier<ScanState> {
         isProcessing: false,
         errorMessage: 'Gagal memindai teks, coba lagi.',
       );
-      await _firestore.logError(_userId, 'scan_capture');
       return;
     }
 
-    // Tampilkan hasil OCR 
-    // (mis. rules belum dideploy, atau offline) bikin hasil scan yg udah
-    // berhasil ini ikut hilang / dianggap gagal total.
+    // Tampilkan hasil OCR segera, jangan sampai gagal simpan ke server
+    // bikin hasil scan yang sudah berhasil ini ikut dianggap gagal total.
     state = state.copyWith(
       isProcessing: false,
       capturedImagePath: file.path,
@@ -137,24 +129,17 @@ class ScanController extends StateNotifier<ScanState> {
     );
 
     try {
-      await _firestore.logActivity(userId: _userId, jenisAktivitas: 'scan');
-
-      if (_userId != null) {
-        // Kompres foto -> base64, simpan langsung di field `gambar`
-        final imageBase64 = await _imageCodec.compressToBase64(file.path);
-
-        await _firestore.addHistory(
-          HistoryEntry(
-            idUser: _userId!,
-            waktuScan: DateTime.now(),
-            type: mode == OutputMode.zoom ? 'zoom' : 'tts',
-            teksHasil: text,
-            gambar: imageBase64,
-          ),
-        );
-      }
+      final imageBase64 = await _imageCodec.compressToBase64(file.path);
+      await _api.addHistory(
+        type: mode == OutputMode.zoom ? 'zoom' : 'tts',
+        teksHasil: text,
+        gambar: imageBase64,
+      );
+      _onHistorySaved();
+      await _api.logActivity('scan');
     } catch (e, st) {
-      // Gagal simpan history/log).
+      // Gagal simpan history/log tidak menggagalkan hasil scan yang sudah
+      // ditampilkan, cuma dicatat di console untuk debugging.
       debugPrint('ScanController.captureAndRecognize (save history) error: $e\n$st');
     }
   }

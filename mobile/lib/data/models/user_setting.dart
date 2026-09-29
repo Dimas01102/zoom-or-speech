@@ -1,26 +1,16 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-/// Representasi dokumen koleksi `user_setting`. ID dokumen = id_user.
+/// Representasi baris tabel user_setting dari response API Laravel.
 class UserSetting {
   const UserSetting({required this.bahasa, required this.kecepatanSuara});
 
   final String bahasa; // 'id' | 'en'
-  final double kecepatanSuara; // 0.0 - 1.0
+  final double kecepatanSuara;
 
   static const defaultValue = UserSetting(bahasa: 'id', kecepatanSuara: 0.5);
 
-  Map<String, dynamic> toMap() => {
-        'bahasa': bahasa,
-        'kecepatan_suara': kecepatanSuara,
-      };
-
-  factory UserSetting.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data();
-    if (data == null) return defaultValue;
+  factory UserSetting.fromJson(Map<String, dynamic> json) {
     return UserSetting(
-      bahasa: data['bahasa'] as String? ?? defaultValue.bahasa,
-      kecepatanSuara:
-          (data['kecepatan_suara'] as num?)?.toDouble() ?? defaultValue.kecepatanSuara,
+      bahasa: json['bahasa'] as String? ?? defaultValue.bahasa,
+      kecepatanSuara: (json['kecepatan_suara'] as num?)?.toDouble() ?? defaultValue.kecepatanSuara,
     );
   }
 

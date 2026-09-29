@@ -39,6 +39,16 @@ class AppStrings {
   // Tutorial
   String get tutorial => _en ? 'Tutorial' : 'Tutorial';
   String get tutorialEmpty => _en ? 'No tutorial content yet.' : 'Belum ada konten tutorial.';
+  String get updatedLabel => _en ? 'Updated' : 'Diperbarui';
+  String get tryScanNow => _en ? 'Try Scanning Now' : 'Coba Pindai Sekarang';
+  String get needHelp => _en ? 'Need more help?' : 'Perlu bantuan lebih lanjut?';
+  String get contactSupport => _en ? 'Contact Customer Support' : 'Hubungi Layanan Pengguna';
+
+  // Scan
+  String get scanTitleZoom => _en ? 'Zoom Mode' : 'Mode Zoom';
+  String get scanTitleSpeech => _en ? 'Voice Mode' : 'Mode Suara';
+  String get scanHint =>
+      _en ? 'Point at the text, then press the button' : 'Arahkan ke tulisan lalu tekan tombol';
 
   // History
   String get historyEmpty => _en ? 'No scan history yet.' : 'Belum ada riwayat pemindaian.';

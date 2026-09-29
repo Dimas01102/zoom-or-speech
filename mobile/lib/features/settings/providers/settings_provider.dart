@@ -1,33 +1,32 @@
-import 'dart:async';
-
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/legacy.dart';
 
 import '../../../data/models/user_setting.dart';
-import '../../../data/repositories/firestore_service.dart';
-import '../../scan/providers/scan_provider.dart' show firestoreServiceProvider;
+import '../../../data/repositories/api_repository.dart';
+import '../../auth/providers/auth_provider.dart';
 
 final settingsControllerProvider =
     StateNotifierProvider<SettingsController, UserSetting>((ref) {
-  final controller = SettingsController(ref.watch(firestoreServiceProvider));
-  ref.onDispose(controller.disposeController);
+  // Watch auth supaya controller dibuat ulang (dan load ulang) saat akun ganti.
+  ref.watch(authStateProvider);
+  final controller = SettingsController(ref.watch(apiRepositoryProvider));
+  controller.load();
   return controller;
 });
 
 class SettingsController extends StateNotifier<UserSetting> {
-  SettingsController(this._firestore) : super(UserSetting.defaultValue) {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId != null) {
-      _subscription = _firestore.watchUserSetting(userId).listen((setting) {
-        state = setting;
-      });
+  SettingsController(this._api) : super(UserSetting.defaultValue);
+
+  final ApiRepository _api;
+
+  Future<void> load() async {
+    try {
+      final setting = await _api.fetchUserSetting();
+      state = setting;
+    } catch (e, st) {
+      debugPrint('SettingsController.load error: $e\n$st');
     }
   }
-
-  final FirestoreService _firestore;
-  StreamSubscription<UserSetting>? _subscription;
-
-  String? get _userId => FirebaseAuth.instance.currentUser?.uid;
 
   Future<void> setBahasa(String bahasa) async {
     state = state.copyWith(bahasa: bahasa);
@@ -40,12 +39,10 @@ class SettingsController extends StateNotifier<UserSetting> {
   }
 
   Future<void> _persist() async {
-    final userId = _userId;
-    if (userId == null) return;
-    await _firestore.saveUserSetting(userId, state);
-  }
-
-  void disposeController() {
-    _subscription?.cancel();
+    try {
+      await _api.updateUserSetting(bahasa: state.bahasa, kecepatanSuara: state.kecepatanSuara);
+    } catch (e, st) {
+      debugPrint('SettingsController._persist error: $e\n$st');
+    }
   }
 }
