@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart' show XFile;
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/widgets.dart' show Offset;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
@@ -101,6 +102,12 @@ class ScanController extends StateNotifier<ScanState> {
     state = state.copyWith(isTorchOn: _camera.isTorchOn);
   }
 
+  /// [point] relatif 0.0-1.0, dipanggil pas user tap layar kamera utk
+  /// fokus manual ke bagian teks tertentu.
+  Future<void> focusAt(Offset point) {
+    return _camera.focusAndExposeAt(point);
+  }
+
   /// [mode] menentukan field type di history, zoom atau tts.
   Future<void> captureAndRecognize(OutputMode mode) async {
     if (!state.isCameraReady || state.isProcessing) return;
@@ -120,8 +127,7 @@ class ScanController extends StateNotifier<ScanState> {
       return;
     }
 
-    // Tampilkan hasil OCR segera, jangan sampai gagal simpan ke server
-    // bikin hasil scan yang sudah berhasil ini ikut dianggap gagal total.
+    // Tampilkan hasil OCR segera langsung
     state = state.copyWith(
       isProcessing: false,
       capturedImagePath: file.path,
@@ -139,7 +145,7 @@ class ScanController extends StateNotifier<ScanState> {
       await _api.logActivity('scan');
     } catch (e, st) {
       // Gagal simpan history/log tidak menggagalkan hasil scan yang sudah
-      // ditampilkan, cuma dicatat di console untuk debugging.
+      // ditampilkan, cuma dicatat di console
       debugPrint('ScanController.captureAndRecognize (save history) error: $e\n$st');
     }
   }

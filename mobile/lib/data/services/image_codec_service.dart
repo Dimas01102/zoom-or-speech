@@ -2,36 +2,45 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show compute;
 import 'package:image/image.dart' as img;
 
-/// Kompres & encode foto hasil scan jadi base64, disimpan LANGSUNG di field
-/// `gambar` pada tabel history di server, tanpa upload storage
-/// (yang mewajibkan upgrade ke plan Blaze / kartu kredit).
+/// Kompres & encode foto hasil scan jadi base64, disimpan langsung di field
+/// `gambar` pada tabel history di server, tanpa upload storage.
 ///
-/// Foto WAJIB dikompres supaya payload API kecil.
-/// Tambahkan dependency: flutter pub add image
 class ImageCodecService {
-  /// [maxWidth] & [quality] dipilih supaya hasil base64 biasanya di bawah
-  /// ~150 KB, masih cukup jelas utk thumbnail
-  /// riwayat (bukan utk ditampilkan full-screen resolusi tinggi).
+  /// [maxWidth] & [quality]
   Future<String> compressToBase64(
     String filePath, {
     int maxWidth = 480,
     int quality = 50,
   }) async {
-    final bytes = await File(filePath).readAsBytes();
-    final decoded = img.decodeImage(bytes);
-    if (decoded == null) {
+    final bytes = await compute(
+      _compressInBackground,
+      _CompressArgs(filePath: filePath, maxWidth: maxWidth, quality: quality),
+    );
+    if (bytes == null) {
       throw const FormatException('Gagal membaca file gambar hasil scan.');
     }
-
-    final resized =
-        decoded.width > maxWidth ? img.copyResize(decoded, width: maxWidth) : decoded;
-
-    final Uint8List compressed = Uint8List.fromList(
-      img.encodeJpg(resized, quality: quality),
-    );
-
-    return base64Encode(compressed);
+    return base64Encode(bytes);
   }
+}
+
+class _CompressArgs {
+  const _CompressArgs({required this.filePath, required this.maxWidth, required this.quality});
+  final String filePath;
+  final int maxWidth;
+  final int quality;
+}
+
+Uint8List? _compressInBackground(_CompressArgs args) {
+  final bytes = File(args.filePath).readAsBytesSync();
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null) return null;
+
+  final resized = decoded.width > args.maxWidth
+      ? img.copyResize(decoded, width: args.maxWidth)
+      : decoded;
+
+  return Uint8List.fromList(img.encodeJpg(resized, quality: args.quality));
 }

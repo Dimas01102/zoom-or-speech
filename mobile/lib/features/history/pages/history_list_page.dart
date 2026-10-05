@@ -13,8 +13,6 @@ import '../providers/history_provider.dart';
 import '../../output/pages/tts_result_page.dart';
 import '../../output/pages/zoom_result_page.dart';
 
-/// UC-006. Riwayat scan milik user, diputar ulang sesuai type. Swipe kiri
-/// untuk hapus satu, ikon centang di AppBar untuk pilih banyak.
 class HistoryListPage extends ConsumerStatefulWidget {
   const HistoryListPage({super.key});
 
@@ -111,6 +109,7 @@ class _HistoryListPageState extends ConsumerState<HistoryListPage> {
         ],
       ),
       body: ref.watch(historyListProvider).when(
+        skipLoadingOnRefresh: false,
         loading: () => const SkeletonListView(),
         error: (error, _) {
           debugPrint('HistoryListPage error: $error');

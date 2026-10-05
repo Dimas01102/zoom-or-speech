@@ -11,4 +11,8 @@ class UsageLog extends Model
     public $timestamps = false;
 
     protected $fillable = ['id_user', 'jenis_aktivitas', 'waktu'];
+
+    protected $casts = [
+        'waktu' => 'datetime',
+    ];
 }

@@ -1,9 +1,10 @@
 import 'package:camera/camera.dart';
+import 'package:flutter/widgets.dart' show Offset;
 
-/// Flashlight manual (tombol on/off)
 class CameraService {
   CameraController? _controller;
   bool _isTorchOn = false;
+  DateTime? _lastManualFocusAt;
 
   CameraController? get controller => _controller;
   bool get isTorchOn => _isTorchOn;
@@ -27,7 +28,7 @@ class CameraService {
       await _controller!.setFocusMode(FocusMode.auto);
       await _controller!.setExposureMode(ExposureMode.auto);
     } catch (_) {
-      // Sebagian device/kamera nggak dukung mode ini aman jika diabaikan.
+      
     }
   }
 
@@ -39,10 +40,32 @@ class CameraService {
     );
   }
 
+  /// [point] relatif 0.0-1.0 terhadap area preview (bukan pixel layar).
+  /// Dipanggil saat user tap layar utk fokus manual ke bagian teks tertentu.
+  Future<void> focusAndExposeAt(Offset point) async {
+    if (_controller == null || !isInitialized) return;
+    try {
+      await _controller!.setFocusPoint(point);
+      await _controller!.setExposurePoint(point);
+      _lastManualFocusAt = DateTime.now();
+    } catch (_) {
+
+    }
+  }
+
   Future<XFile> takePicture() async {
     if (_controller == null || !isInitialized) {
       throw StateError('Kamera belum diinisialisasi.');
     }
+
+    final lastFocus = _lastManualFocusAt;
+    if (lastFocus != null) {
+      final sinceFocus = DateTime.now().difference(lastFocus);
+      if (sinceFocus < const Duration(milliseconds: 800)) {
+        await Future.delayed(const Duration(milliseconds: 250) - sinceFocus);
+      }
+    }
+
     return _controller!.takePicture();
   }
 

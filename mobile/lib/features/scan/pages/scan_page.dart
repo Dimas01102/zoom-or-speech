@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,8 +11,6 @@ import '../../output/pages/zoom_result_page.dart';
 import '../../output/providers/output_mode_provider.dart';
 import '../providers/scan_provider.dart';
 
-/// kamera real-time, flashlight manual capture -> OCR.
-/// Setelah OCR selesai, teks & path gambar diteruskan ke mode output.
 class ScanPage extends ConsumerStatefulWidget {
   const ScanPage({super.key});
 
@@ -19,13 +19,17 @@ class ScanPage extends ConsumerStatefulWidget {
 }
 
 class _ScanPageState extends ConsumerState<ScanPage> {
+  final GlobalKey _previewAreaKey = GlobalKey();
+  Offset? _focusPoint;
+  Timer? _focusIndicatorTimer;
+
   @override
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(scanControllerProvider.notifier).initCamera());
   }
 
-  /// Preview kamera dipotong mengisi kartu (cover), tanpa gepeng.
+  /// Preview kamera dipotong mengisi kartu (cover)
   Widget _preview(CameraController c) {
     final size = c.value.previewSize;
     if (size == null) return CameraPreview(c);
@@ -42,6 +46,26 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     );
   }
 
+  /// Tap di area kamera utk fokus manual ke titik itu (mis. tepat ke tulisan).
+  void _handleTapToFocus(TapUpDetails details, ScanController controller) {
+    final box = _previewAreaKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+
+    final local = box.globalToLocal(details.globalPosition);
+    final relative = Offset(
+      (local.dx / box.size.width).clamp(0.0, 1.0),
+      (local.dy / box.size.height).clamp(0.0, 1.0),
+    );
+
+    controller.focusAt(relative);
+
+    setState(() => _focusPoint = local);
+    _focusIndicatorTimer?.cancel();
+    _focusIndicatorTimer = Timer(const Duration(milliseconds: 700), () {
+      if (mounted) setState(() => _focusPoint = null);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(appStringsProvider);
@@ -51,10 +75,9 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     final mode = ref.watch(selectedOutputModeProvider);
 
     ref.listen(scanControllerProvider, (previous, next) {
-      if (next.recognizedText != null &&
-          previous?.recognizedText != next.recognizedText) {
+      final text = next.recognizedText;
+      if (text != null && previous?.recognizedText != text) {
         final outputMode = ref.read(selectedOutputModeProvider);
-        final text = next.recognizedText!;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => outputMode == OutputMode.zoom
@@ -112,35 +135,46 @@ class _ScanPageState extends ConsumerState<ScanPage> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                 child: Container(
+                  key: _previewAreaKey,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: AppColors.cameraDark,
                     borderRadius: BorderRadius.circular(28),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      if (showPreview)
-                        _preview(cameraController!)
-                      else
-                        const Center(
-                          child: CircularProgressIndicator(color: Colors.white),
-                        ),
-                      Center(
-                        child: FractionallySizedBox(
-                          widthFactor: 0.78,
-                          child: AspectRatio(
-                            aspectRatio: 1.1,
-                            child: CustomPaint(
-                              painter: _DashedRRectPainter(
-                                color: Colors.white.withValues(alpha: 0.75),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapUp: showPreview ? (d) => _handleTapToFocus(d, controller) : null,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (showPreview)
+                          _preview(cameraController)
+                        else
+                          const Center(
+                            child: CircularProgressIndicator(color: Colors.white),
+                          ),
+                        if (_focusPoint != null)
+                          Positioned(
+                            left: _focusPoint!.dx - 24,
+                            top: _focusPoint!.dy - 24,
+                            child: IgnorePointer(
+                              child: AnimatedOpacity(
+                                opacity: 1,
+                                duration: const Duration(milliseconds: 150),
+                                child: Container(
+                                  height: 48,
+                                  width: 48,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -156,7 +190,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
               ),
             ),
             const SizedBox(height: 24),
-            // Tombol capture, di bawah tengah sesuai desain.
+            // Tombol capture
             GestureDetector(
               onTap: state.isCameraReady && !state.isProcessing
                   ? () => controller.captureAndRecognize(
@@ -197,58 +231,8 @@ class _ScanPageState extends ConsumerState<ScanPage> {
 
   @override
   void dispose() {
+    _focusIndicatorTimer?.cancel();
     ref.read(cameraServiceProvider).dispose();
     super.dispose();
   }
-}
-
-/// Bingkai putus-putus berujung membulat di tengah kartu kamera.
-class _DashedRRectPainter extends CustomPainter {
-  const _DashedRRectPainter({
-    required this.color,
-    this.radius = 24,
-    this.dash = 8,
-    this.gap = 7,
-    this.strokeWidth = 1.8,
-  });
-
-  final Color color;
-  final double radius;
-  final double dash;
-  final double gap;
-  final double strokeWidth;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
-
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Offset.zero & size,
-          Radius.circular(radius),
-        ),
-      );
-
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final end = (distance + dash).clamp(0.0, metric.length).toDouble();
-        canvas.drawPath(metric.extractPath(distance, end), paint);
-        distance += dash + gap;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedRRectPainter old) =>
-      old.color != color ||
-      old.radius != radius ||
-      old.dash != dash ||
-      old.gap != gap ||
-      old.strokeWidth != strokeWidth;
 }

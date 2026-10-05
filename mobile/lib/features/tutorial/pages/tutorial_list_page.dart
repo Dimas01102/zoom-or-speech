@@ -18,6 +18,7 @@ class TutorialListPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(t.tutorial)),
       body: ref.watch(kontenListProvider).when(
+        skipLoadingOnRefresh: false,
             loading: () => const SkeletonListView(),
             error: (error, _) {
               debugPrint('TutorialListPage error: $error');
@@ -62,7 +63,7 @@ class TutorialListPage extends ConsumerWidget {
                           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                         ),
                         subtitle: Text(
-                          konten.ringkasan,
+                          konten.deskripsi,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),

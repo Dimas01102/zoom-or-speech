@@ -12,6 +12,10 @@ class History extends Model
 
     protected $fillable = ['id_user', 'waktu_scan', 'type', 'teks_hasil', 'gambar'];
 
+    protected $casts = [
+        'waktu_scan' => 'datetime',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class, 'id_user', 'id_user');
