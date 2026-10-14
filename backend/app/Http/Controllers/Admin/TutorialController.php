@@ -12,7 +12,10 @@ class TutorialController extends Controller
     public function index()
     {
         $this->authorize('viewAny', Konten::class);
-        return response()->json(Konten::all());
+
+        return response()->json(
+            Konten::orderByDesc('updated_at')->get(),
+        );
     }
 
     public function store(Request $request)
@@ -22,7 +25,7 @@ class TutorialController extends Controller
         $data = $request->validate([
             'judul' => 'required|string|max:255',
             'deskripsi' => 'required|string',
-            'video' => 'required|url',
+            'video' => 'required|url|max:255',
         ]);
         $data['diperbarui_oleh'] = auth('admin')->user()->username;
 
@@ -39,7 +42,7 @@ class TutorialController extends Controller
         $data = $request->validate([
             'judul' => 'sometimes|string|max:255',
             'deskripsi' => 'sometimes|string',
-            'video' => 'sometimes|url',
+            'video' => 'sometimes|url|max:255',
         ]);
         $data['diperbarui_oleh'] = auth('admin')->user()->username;
 
