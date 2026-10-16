@@ -25,24 +25,24 @@ class FeatureTour {
 
     final targets = <TargetFocus>[
       _target(
-        TutorialKeys.zoomButton,
-        'Mode Zoom',
-        'Pilih ini kalau mau teks hasil scan ditampilkan diperbesar di layar.',
-      ),
-      _target(
-        TutorialKeys.suaraButton,
-        'Mode Suara',
-        'Pilih ini kalau mau teks hasil scan dibacakan lewat suara.',
+        TutorialKeys.cameraButton,
+        'Kamera',
+        'Tekan ini lalu foto teksnya. Setelah itu pilih icon Zoom untuk memperbesar atau icon Suara untuk dibacakan.',
       ),
       _target(
         TutorialKeys.scanFab,
         'Tombol Scan',
-        'Akses cepat: tekan ini kapan saja utk mulai scan, lalu pilih mode-nya.',
+        'Akses cepat: tekan ini kapan saja untuk langsung membuka kamera.',
       ),
       _target(
         TutorialKeys.navHistory,
         'Riwayat',
         'Semua hasil scan kamu sebelumnya tersimpan & bisa diputar ulang di sini.',
+      ),
+      _target(
+        TutorialKeys.navTutorial,
+        'Tutorial',
+        'Panduan singkat cara memakai aplikasi, lengkap dengan langkah-langkahnya.',
       ),
       _target(
         TutorialKeys.navSettings,

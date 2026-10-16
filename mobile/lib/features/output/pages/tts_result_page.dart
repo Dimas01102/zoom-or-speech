@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_theme.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../providers/tts_provider.dart';
+import '../widgets/result_body.dart';
+import 'zoom_result_page.dart';
 
-/// mode suara. Kontrol play, berhenti, ulangi via flutter_tts.
+/// Mode suara Foto + teks
+/// play/stop, dan kecepatan suara (flutter_tts).
 class TtsResultPage extends ConsumerStatefulWidget {
-  const TtsResultPage({super.key, required this.recognizedText});
+  const TtsResultPage({
+    super.key,
+    required this.recognizedText,
+    this.capturedImagePath,
+    this.imageBase64,
+  });
 
   final String recognizedText;
+  final String? capturedImagePath;
+  final String? imageBase64;
 
   @override
   ConsumerState<TtsResultPage> createState() => _TtsResultPageState();
@@ -28,6 +37,18 @@ class _TtsResultPageState extends ConsumerState<TtsResultPage> {
     });
   }
 
+  void _switchToZoom() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => ZoomResultPage(
+          recognizedText: widget.recognizedText,
+          capturedImagePath: widget.capturedImagePath,
+          imageBase64: widget.imageBase64,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(ttsControllerProvider);
@@ -35,56 +56,43 @@ class _TtsResultPageState extends ConsumerState<TtsResultPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Hasil Suara')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Text(
-                  widget.recognizedText.isEmpty
-                      ? 'Tidak ada teks terdeteksi.'
-                      : widget.recognizedText,
-                  style: const TextStyle(fontSize: 18, height: 1.5, color: AppColors.textPrimary),
-                ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ResultBody(
+              recognizedText: widget.recognizedText,
+              capturedImagePath: widget.capturedImagePath,
+              imageBase64: widget.imageBase64,
+              imageFlex: 2,
+              textFlex: 3,
+            ),
+          ),
+          ResultControlBar(
+            children: [
+              ResultIconButton(
+                icon: Icons.zoom_in,
+                tooltip: 'Pindah ke Zoom',
+                size: 56,
+                onPressed: _switchToZoom,
               ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
-                  iconSize: 36,
-                  icon: const Icon(Icons.replay, color: AppColors.secondary),
-                  onPressed: () => controller.replay(widget.recognizedText),
-                ),
-                GestureDetector(
-                  onTap: () => state.isSpeaking
-                      ? controller.stop()
-                      : controller.play(widget.recognizedText),
-                  child: Container(
-                    height: 72,
-                    width: 72,
-                    decoration: const BoxDecoration(
-                      color: AppColors.secondary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      state.isSpeaking ? Icons.stop : Icons.play_arrow,
-                      color: Colors.white,
-                      size: 36,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  iconSize: 32,
-                  icon: const Icon(Icons.speed, color: AppColors.secondary),
-                  onPressed: () => _showSpeedPicker(context, controller, state.speechRate),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ResultIconButton(
+                icon: state.isSpeaking ? Icons.stop : Icons.play_arrow,
+                tooltip: state.isSpeaking ? 'Berhenti' : 'Putar',
+                size: 72,
+                filled: true,
+                onPressed: () => state.isSpeaking
+                    ? controller.stop()
+                    : controller.play(widget.recognizedText),
+              ),
+              ResultIconButton(
+                icon: Icons.speed,
+                tooltip: 'Kecepatan suara',
+                size: 56,
+                onPressed: () => _showSpeedPicker(context, controller, state.speechRate),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

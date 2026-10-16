@@ -25,11 +25,17 @@ class AppStrings {
   String get homeSubtitle => _en
       ? 'Pick one, then point the camera at the text you want to read.'
       : 'Pilih salah satu, lalu arahkan kamera ke teks yang mau dibaca.';
+  String get cameraLabel => 'Camera';
+  String get cameraDesc => _en
+      ? 'Take a photo of the text, then zoom in or listen to it.'
+      : 'Foto teksnya, lalu perbesar atau dengarkan.';
   String get zoom => _en ? 'Zoom' : 'Zoom';
   String get zoomDesc => _en ? 'Enlarge the scanned text on screen.' : 'Perbesar teks hasil scan di layar.';
   String get suara => _en ? 'Voice' : 'Suara';
   String get suaraDesc =>
       _en ? 'Listen to the scanned text read aloud.' : 'Dengarkan teks hasil scan dibacakan.';
+
+  String get notLoggedIn => _en ? 'You are not logged in' : 'Anda belum Login';
 
   // Nav
   String get navHome => _en ? 'Home' : 'Beranda';
@@ -45,8 +51,10 @@ class AppStrings {
   String get contactSupport => _en ? 'Contact Customer Support' : 'Hubungi Layanan Pengguna';
 
   // Scan
+  String get scanTitle => _en ? 'Scan' : 'Pindai';
   String get scanTitleZoom => _en ? 'Zoom Mode' : 'Mode Zoom';
   String get scanTitleSpeech => _en ? 'Voice Mode' : 'Mode Suara';
+  String get chooseResultHint => _en ? 'Choose how to read the result' : 'Pilih cara membaca hasilnya';
   String get scanHint =>
       _en ? 'Point at the text, then press the button' : 'Arahkan ke tulisan lalu tekan tombol';
 

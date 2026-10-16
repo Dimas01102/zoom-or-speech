@@ -7,11 +7,7 @@ import '../pages/onboarding_page.dart';
 import '../providers/auth_provider.dart';
 import '../../../shared/main_shell.dart';
 
-/// Menentukan halaman awal aplikasi:
-/// - Sedang cek sesi        -> Splash (loading)
-/// - Belum login            -> LoginPage
-/// - Login tapi belum lihat onboarding -> OnboardingPage
-/// - Sudah login & onboarding selesai  -> HomePage
+/// Menentukan halaman awal aplikasi
 class AuthGate extends ConsumerWidget {
   const AuthGate({super.key});
 
@@ -89,6 +85,7 @@ class _SplashView extends StatelessWidget {
               )
             : Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
                     height: 88,

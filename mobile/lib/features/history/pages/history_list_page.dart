@@ -34,7 +34,7 @@ class _HistoryListPageState extends ConsumerState<HistoryListPage> {
       MaterialPageRoute(
         builder: (_) => entry.type == 'zoom'
             ? ZoomResultPage(recognizedText: entry.teksHasil, imageBase64: entry.gambar)
-            : TtsResultPage(recognizedText: entry.teksHasil),
+            : TtsResultPage(recognizedText: entry.teksHasil, imageBase64: entry.gambar),
       ),
     );
   }
@@ -189,7 +189,6 @@ class _HistoryListPageState extends ConsumerState<HistoryListPage> {
                   },
                   onDismissed: (_) async {
                     if (id == null) return;
-                    // Sembunyikan langsung, Dismissible wajib hilang dari tree.
                     setState(() => _hiddenIds.add(id));
                     try {
                       await _deleteOne(id);

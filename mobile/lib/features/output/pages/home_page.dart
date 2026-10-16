@@ -6,13 +6,11 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/app_title_bar.dart';
 import '../../../shared/tutorial_keys.dart';
 import '../../scan/pages/camera_permission_page.dart';
-import '../providers/output_mode_provider.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
-  void _selectModeAndScan(BuildContext context, WidgetRef ref, OutputMode mode) {
-    ref.read(selectedOutputModeProvider.notifier).state = mode;
+  void _openCamera(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const CameraPermissionPage()),
     );
@@ -46,27 +44,14 @@ class HomePage extends ConsumerWidget {
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
-                          height: 170,
+                          height: 310,
                           child: _ModeCard(
-                            key: TutorialKeys.zoomButton,
-                            icon: Icons.zoom_in,
-                            label: t.zoom,
-                            description: t.zoomDesc,
-                            color: AppColors.primary,
-                            onTap: () => _selectModeAndScan(context, ref, OutputMode.zoom),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 170,
-                          child: _ModeCard(
-                            key: TutorialKeys.suaraButton,
-                            icon: Icons.volume_up,
-                            label: t.suara,
-                            description: t.suaraDesc,
+                            key: TutorialKeys.cameraButton,
+                            icon: Icons.camera_alt,
+                            label: t.cameraLabel,
+                            description: t.cameraDesc,
                             color: AppColors.secondary,
-                            onTap: () => _selectModeAndScan(context, ref, OutputMode.speech),
+                            onTap: () => _openCamera(context),
                           ),
                         ),
                       ],

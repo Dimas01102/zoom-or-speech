@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -22,11 +23,19 @@ class _ScanPageState extends ConsumerState<ScanPage> {
   final GlobalKey _previewAreaKey = GlobalKey();
   Offset? _focusPoint;
   Timer? _focusIndicatorTimer;
+  bool _chosen = false;
+  bool _fresh = false; // true setelah state scan lama dibersihkan
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(scanControllerProvider.notifier).initCamera());
+    Future.microtask(() {
+      final c = ref.read(scanControllerProvider.notifier);
+      // State provider ini hidup terus; bersihkan sisa scan sebelumnya dulu.
+      c.reset();
+      if (mounted) setState(() => _fresh = true);
+      c.initCamera();
+    });
   }
 
   /// Preview kamera dipotong mengisi kartu (cover)
@@ -66,29 +75,33 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     });
   }
 
+  /// User pilih Zoom / Suara setelah foto. History disimpan di background,
+  /// halaman hasil langsung dibuka.
+  void _choose(OutputMode mode) {
+    if (_chosen) return;
+    final s = ref.read(scanControllerProvider);
+    final text = s.recognizedText;
+    if (text == null) return;
+    _chosen = true;
+
+    ref.read(scanControllerProvider.notifier).saveHistory(mode);
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => mode == OutputMode.zoom
+            ? ZoomResultPage(recognizedText: text, capturedImagePath: s.capturedImagePath)
+            : TtsResultPage(recognizedText: text, capturedImagePath: s.capturedImagePath),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(appStringsProvider);
     final state = ref.watch(scanControllerProvider);
     final controller = ref.read(scanControllerProvider.notifier);
     final camera = ref.read(cameraServiceProvider);
-    final mode = ref.watch(selectedOutputModeProvider);
 
     ref.listen(scanControllerProvider, (previous, next) {
-      final text = next.recognizedText;
-      if (text != null && previous?.recognizedText != text) {
-        final outputMode = ref.read(selectedOutputModeProvider);
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => outputMode == OutputMode.zoom
-                ? ZoomResultPage(
-                    recognizedText: text,
-                    capturedImagePath: next.capturedImagePath,
-                  )
-                : TtsResultPage(recognizedText: text),
-          ),
-        );
-      }
       if (next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(next.errorMessage!)),
@@ -96,12 +109,20 @@ class _ScanPageState extends ConsumerState<ScanPage> {
       }
     });
 
+    final captured = _fresh && state.capturedImagePath != null && state.recognizedText != null;
+
     final cameraController = camera.controller;
     final showPreview = state.isCameraReady &&
         cameraController != null &&
         cameraController.value.isInitialized;
 
-    return Scaffold(
+    // Setelah foto: tombol back = ambil ulang, bukan keluar halaman.
+    return PopScope(
+      canPop: !captured,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && captured) controller.retake();
+      },
+      child: Scaffold(
       backgroundColor: AppColors.cream,
       appBar: AppBar(
         backgroundColor: AppColors.cream,
@@ -112,7 +133,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text(
-          mode == OutputMode.zoom ? t.scanTitleZoom : t.scanTitleSpeech,
+          t.scanTitle,
           style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w800,
@@ -124,7 +145,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
           IconButton(
             icon: Icon(state.isTorchOn ? Icons.flash_on : Icons.flash_off),
             color: AppColors.textPrimary,
-            onPressed: state.isCameraReady ? controller.toggleTorch : null,
+            onPressed: state.isCameraReady && !captured ? controller.toggleTorch : null,
           ),
         ],
       ),
@@ -144,17 +165,23 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                   clipBehavior: Clip.antiAlias,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTapUp: showPreview ? (d) => _handleTapToFocus(d, controller) : null,
+                    onTapUp: showPreview && !captured ? (d) => _handleTapToFocus(d, controller) : null,
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        if (showPreview)
+                        if (captured)
+                          Image.file(
+                            File(state.capturedImagePath!),
+                            fit: BoxFit.cover,
+                            cacheWidth: 1080,
+                          )
+                        else if (showPreview)
                           _preview(cameraController)
                         else
                           const Center(
                             child: CircularProgressIndicator(color: Colors.white),
                           ),
-                        if (_focusPoint != null)
+                        if (_focusPoint != null && !captured)
                           Positioned(
                             left: _focusPoint!.dx - 24,
                             top: _focusPoint!.dy - 24,
@@ -181,7 +208,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
             ),
             const SizedBox(height: 18),
             Text(
-              t.scanHint,
+              captured ? t.chooseResultHint : t.scanHint,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 15,
@@ -190,41 +217,61 @@ class _ScanPageState extends ConsumerState<ScanPage> {
               ),
             ),
             const SizedBox(height: 24),
-            // Tombol capture
-            GestureDetector(
-              onTap: state.isCameraReady && !state.isProcessing
-                  ? () => controller.captureAndRecognize(
-                        ref.read(selectedOutputModeProvider),
-                      )
-                  : null,
-              child: Container(
-                height: 72,
-                width: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.secondary,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.secondary.withValues(alpha: 0.35),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+            if (captured)
+              // Pilih hasil: icon saja (Zoom / Suara)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _ChoiceButton(
+                    icon: Icons.zoom_in,
+                    tooltip: t.zoom,
+                    color: AppColors.primary,
+                    onTap: () => _choose(OutputMode.zoom),
+                  ),
+                  const SizedBox(width: 40),
+                  _ChoiceButton(
+                    icon: Icons.volume_up,
+                    tooltip: t.suara,
+                    color: AppColors.secondary,
+                    onTap: () => _choose(OutputMode.speech),
+                  ),
+                ],
+              )
+            else
+              // Tombol capture
+              GestureDetector(
+                onTap: state.isCameraReady && !state.isProcessing
+                    ? controller.captureAndRecognize
+                    : null,
+                child: Container(
+                  height: 72,
+                  width: 72,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.secondary,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.secondary.withValues(alpha: 0.35),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: state.isProcessing
+                      ? const Padding(
+                          padding: EdgeInsets.all(22),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.camera_alt, color: Colors.white, size: 30),
                 ),
-                child: state.isProcessing
-                    ? const Padding(
-                        padding: EdgeInsets.all(22),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.camera_alt, color: Colors.white, size: 30),
               ),
-            ),
             const SizedBox(height: 28),
           ],
         ),
+      ),
       ),
     );
   }
@@ -234,5 +281,45 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     _focusIndicatorTimer?.cancel();
     ref.read(cameraServiceProvider).dispose();
     super.dispose();
+  }
+}
+
+class _ChoiceButton extends StatelessWidget {
+  const _ChoiceButton({
+    required this.icon,
+    required this.tooltip,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        excludeSemantics: true,
+        child: Material(
+          color: color,
+          shape: const CircleBorder(),
+          elevation: 3,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onTap,
+            child: SizedBox(
+              height: 80,
+              width: 80,
+              child: Icon(icon, color: Colors.white, size: 38),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

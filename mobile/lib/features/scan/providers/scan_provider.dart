@@ -108,8 +108,9 @@ class ScanController extends StateNotifier<ScanState> {
     return _camera.focusAndExposeAt(point);
   }
 
-  /// [mode] menentukan field type di history, zoom atau tts.
-  Future<void> captureAndRecognize(OutputMode mode) async {
+  /// Foto + OCR saja. History disimpan belakangan lewat [saveHistory],
+  /// setelah user memilih Zoom atau Suara.
+  Future<void> captureAndRecognize() async {
     if (!state.isCameraReady || state.isProcessing) return;
     state = state.copyWith(isProcessing: true, errorMessage: null);
 
@@ -127,15 +128,21 @@ class ScanController extends StateNotifier<ScanState> {
       return;
     }
 
-    // Tampilkan hasil OCR segera langsung
     state = state.copyWith(
       isProcessing: false,
       capturedImagePath: file.path,
       recognizedText: text,
     );
+  }
 
+  /// Dipanggil pas user milih Zoom / Suara. [mode] menentukan field type di
+  /// history. Gagal simpan tidak mengganggu hasil yang sudah tampil.
+  Future<void> saveHistory(OutputMode mode) async {
+    final path = state.capturedImagePath;
+    final text = state.recognizedText;
+    if (path == null || text == null) return;
     try {
-      final imageBase64 = await _imageCodec.compressToBase64(file.path);
+      final imageBase64 = await _imageCodec.compressToBase64(path);
       await _api.addHistory(
         type: mode == OutputMode.zoom ? 'zoom' : 'tts',
         teksHasil: text,
@@ -144,13 +151,18 @@ class ScanController extends StateNotifier<ScanState> {
       _onHistorySaved();
       await _api.logActivity('scan');
     } catch (e, st) {
-      // Gagal simpan history/log tidak menggagalkan hasil scan yang sudah
-      // ditampilkan, cuma dicatat di console
-      debugPrint('ScanController.captureAndRecognize (save history) error: $e\n$st');
+      debugPrint('ScanController.saveHistory error: $e\n$st');
     }
   }
 
+  /// Dipanggil saat ScanPage dibuka: bersihkan sisa scan sebelumnya total
+  /// (copyWith tidak bisa mengosongkan field jadi null).
   void reset() {
-    state = state.copyWith(capturedImagePath: null, recognizedText: null);
+    state = const ScanState();
+  }
+
+  /// Ambil ulang foto buang hasil, kamera tetap siap.
+  void retake() {
+    state = ScanState(isCameraReady: state.isCameraReady, isTorchOn: state.isTorchOn);
   }
 }

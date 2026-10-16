@@ -1,8 +1,2 @@
-import 'package:flutter_riverpod/legacy.dart'; // StateProvider 
-
-/// utk menentukan mau diarahkan ke ZoomResultPage atau TtsResultPage.
+/// Jenis output hasil scan. Dipakai buat field type di history (zoom / tts).
 enum OutputMode { zoom, speech }
-
-final selectedOutputModeProvider = StateProvider<OutputMode>((ref) {
-  return OutputMode.zoom;
-});

@@ -94,8 +94,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 final slide = _slides[i];
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // Icon dgn animasi masuk (fade + scale) tiap pindah slide.
                       TweenAnimationBuilder<double>(
@@ -132,6 +135,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                     ],
+                  ),
                   ),
                 );
               },
