@@ -29,6 +29,8 @@ class AdminPanelProvider extends PanelProvider
             ->login(Login::class)
             ->authGuard('admin')
             ->brandName('JELAS Admin')
+            ->brandLogo(asset('assets/logo.webp'))
+            ->brandLogoHeight('2.5rem')
             ->colors([
                 'primary' => Color::Orange,
             ])
